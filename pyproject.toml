@@ -1,0 +1,82 @@
+[build-system]
+requires = ["setuptools>=69", "setuptools-scm>=8"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pygreat"
+version = "0.1.0"
+description = "pyGREAT: scalable genomic region functional enrichment in Python with the GREAT framework"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "pygreat contributors"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+requires-python = ">=3.10"
+dependencies = [
+    "httpx>=0.25.0",
+    "pandas>=2.0.0",
+    "numpy>=1.24.0",
+    "rich-click>=1.7.0",
+    "rich>=13.0.0",
+    "matplotlib>=3.7.0",
+    "seaborn>=0.13.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "pytest-httpx>=0.26.0",
+    "pytest-mock>=3.12.0",
+    "ruff>=0.1.0",
+    "mypy>=1.7.0",
+    "pandas-stubs>=2.0.0",
+    "pre-commit>=3.5.0",
+]
+docs = [
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.4.0",
+    "mkdocstrings[python]>=0.24.0",
+]
+
+[project.scripts]
+pygreat = "pygreat.cli.app:main"
+
+[project.urls]
+Homepage = "https://github.com/khan-lab/pyGREAT"
+Documentation = "https://khan-lab.github.io/pyGREAT"
+Repository = "https://github.com/khan-lab/pyGREAT"
+Issues = "https://github.com/khan-lab/pyGREAT/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+select = ["E", "F", "I", "N", "W", "UP", "B", "C4", "SIM"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+warn_return_any = true
+warn_unused_ignores = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --cov=pygreat --cov-report=term-missing"
+markers = [
+    "slow: marks tests as slow",
+    "integration: marks tests requiring real API access",
+]
