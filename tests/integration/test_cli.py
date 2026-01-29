@@ -51,7 +51,7 @@ class TestCLI:
 
     def test_submit_nonexistent_file(self, runner: CliRunner) -> None:
         """Test submit with nonexistent file."""
-        result = runner.invoke(cli, ["submit", "nonexistent.bed"])
+        result = runner.invoke(cli, ["submit", "https://asntech.org/dbsuper/data/bed/hg19/Astrocytes.bed", "--species", "hg19", "--output", "results.tsv"])
         assert result.exit_code != 0
 
     def test_plot_with_sample_data(

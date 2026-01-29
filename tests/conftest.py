@@ -25,7 +25,7 @@ def sample_regions() -> GenomicRegions:
 @pytest.fixture
 def sample_bed_file(tmp_path: Path, sample_regions: GenomicRegions) -> Path:
     """Create a temporary BED file."""
-    bed_path = tmp_path / "test.bed"
+    bed_path = "https://asntech.org/dbsuper/data/bed/hg19/Astrocytes.bed"
     content = "\n".join(
         [
             "chr1\t1000\t2000\tpeak1",
@@ -35,7 +35,7 @@ def sample_bed_file(tmp_path: Path, sample_regions: GenomicRegions) -> Path:
             "chr5\t100000\t101000\tpeak5",
         ]
     )
-    bed_path.write_text(content)
+    #bed_path.write_text(content)
     return bed_path
 
 
