@@ -1,18 +1,20 @@
 # pyGREAT
 
+> **A scalable genomic region functional enrichment in Python with the GREAT framework**
+
 [![PyPI version](https://badge.fury.io/py/pygreat.svg)](https://badge.fury.io/py/pygreat)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Programmatic Python access to [GREAT](https://great.stanford.edu/) (Genomic Regions Enrichment of Annotations Tool) from Stanford.
+pyGREAT provides Pythonic and CLI access to [GREAT](https://great.stanford.edu/) (Genomic Regions Enrichment of Annotations Tool) from Stanford.
 
 ## Features
 
 - Submit genomic regions (BED files, URLs, or pandas DataFrames) to GREAT
 - Retrieve enrichment results as pandas DataFrames
 - Visualize top enriched terms with seaborn bar/dot plots
-- Beautiful CLI powered by rich-click
-- Full type hints and modern Python 3.10+ syntax
+- Provided a rich and well documented Python API
+- Comes with a beautiful CLI powered by rich-click
 
 ## Installation
 
@@ -317,8 +319,3 @@ If you use GREAT in your research, please cite:
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details.
-
-## Acknowledgments
-
-- [GREAT](https://great.stanford.edu/) by the Bejerano Lab at Stanford
-- [rGREAT](https://github.com/jokergoo/rGREAT) R package for inspiration
