@@ -1,4 +1,4 @@
-# pygreat
+# pyGREAT
 
 [![PyPI version](https://badge.fury.io/py/pygreat.svg)](https://badge.fury.io/py/pygreat)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
@@ -17,13 +17,13 @@ Programmatic Python access to [GREAT](https://great.stanford.edu/) (Genomic Regi
 ## Installation
 
 ```bash
-pip install pygreat
+pip install py-great
 ```
 
 Or install from source:
 
 ```bash
-git clone https://github.com/your-username/pygreat.git
+git clone https://github.com/khan-lab/pyGREAT.git
 cd pygreat
 pip install -e .
 ```
@@ -67,8 +67,8 @@ from pygreat import GreatClient
 
 client = GreatClient()
 job = client.submit_job(
-    "https://example.com/peaks.bed",  # Direct URL - no upload needed
-    species="hg38",
+    "https://asntech.org/dbsuper/data/bed/hg19/Astrocytes.bed",  # Direct URL - no upload needed
+    species="hg19",
 )
 results = job.get_enrichment_tables()
 ```
@@ -130,6 +130,7 @@ pygreat plot results.tsv -t "GO Biological Process" --plot-type dot -n 20 -o dot
 ## Supported Species
 
 GREAT v4.0.4 supports:
+
 - Human: `hg38`, `hg19`
 - Mouse: `mm10`, `mm9`
 
@@ -169,6 +170,7 @@ job = client.submit_job(
 ```
 
 **Input formats:**
+
 - Local BED file path: `"peaks.bed"` or `Path("peaks.bed")`
 - URL to public BED file: `"https://example.com/peaks.bed"`
 - pandas DataFrame with `chrom`, `start`, `end` columns
@@ -214,23 +216,23 @@ df = job.to_dataframe("GO Biological Process")
 
 Each enrichment table contains these columns:
 
-| Column | Description |
-|--------|-------------|
-| `term_id` | Ontology term identifier (e.g., GO:0006915) |
-| `term_name` | Human-readable term name |
-| `binom_rank` | Binomial test rank |
-| `binom_p` | Binomial raw p-value |
-| `binom_fdr` | Binomial FDR-corrected q-value |
-| `binom_fold_enrichment` | Binomial fold enrichment |
-| `observed_regions` | Number of input regions associated with term |
-| `expected_regions` | Expected regions under null |
-| `hyper_rank` | Hypergeometric test rank |
-| `hyper_p` | Hypergeometric raw p-value |
-| `hyper_fdr` | Hypergeometric FDR-corrected q-value |
-| `hyper_fold_enrichment` | Hypergeometric fold enrichment |
-| `observed_genes` | Number of genes in input regions |
-| `expected_genes` | Expected genes under null |
-| `total_genes` | Total genes annotated to term |
+| Column                  | Description                                  |
+| ----------------------- | -------------------------------------------- |
+| `term_id`               | Ontology term identifier (e.g., GO:0006915)  |
+| `term_name`             | Human-readable term name                     |
+| `binom_rank`            | Binomial test rank                           |
+| `binom_p`               | Binomial raw p-value                         |
+| `binom_fdr`             | Binomial FDR-corrected q-value               |
+| `binom_fold_enrichment` | Binomial fold enrichment                     |
+| `observed_regions`      | Number of input regions associated with term |
+| `expected_regions`      | Expected regions under null                  |
+| `hyper_rank`            | Hypergeometric test rank                     |
+| `hyper_p`               | Hypergeometric raw p-value                   |
+| `hyper_fdr`             | Hypergeometric FDR-corrected q-value         |
+| `hyper_fold_enrichment` | Hypergeometric fold enrichment               |
+| `observed_genes`        | Number of genes in input regions             |
+| `expected_genes`        | Expected genes under null                    |
+| `total_genes`           | Total genes annotated to term                |
 
 ## Visualization
 
@@ -292,6 +294,7 @@ except GreatError as e:
 ## Rate Limiting
 
 GREAT limits concurrent requests globally. pygreat handles this automatically with exponential backoff:
+
 - Base interval: 30 seconds
 - Max wait: 5 minutes
 - Max retries: 5 attempts
@@ -309,7 +312,7 @@ client = GreatClient(
 
 If you use GREAT in your research, please cite:
 
-> McLean CY, Bristor D, Hiller M, et al. GREAT improves functional interpretation of cis-regulatory regions. *Nature Biotechnology*. 2010;28(5):495-501.
+> McLean CY, Bristor D, Hiller M, et al. GREAT improves functional interpretation of cis-regulatory regions. _Nature Biotechnology_. 2010;28(5):495-501.
 
 ## License
 
