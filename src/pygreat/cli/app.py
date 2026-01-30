@@ -18,6 +18,9 @@ from pygreat.core.exceptions import GreatError
 if TYPE_CHECKING:
     import pandas as pd
 
+# Type alias for local analysis
+LocalGreatType = "LocalGreat"  # Forward reference
+
 # Configure rich-click
 click.rich_click.USE_RICH_MARKUP = True
 click.rich_click.USE_MARKDOWN = True
@@ -335,6 +338,321 @@ def ontologies() -> None:
     console.print(
         "\n[dim]Note: Available ontologies may vary depending on the GREAT version.[/dim]"
     )
+
+
+@cli.command()
+@click.argument("bed_file", type=click.Path(exists=True, path_type=Path))
+@click.option(
+    "--gtf",
+    "-g",
+    type=click.Path(exists=True, path_type=Path),
+    required=True,
+    help="GTF/GFF file with gene annotations (TSS positions)",
+)
+@click.option(
+    "--gmt",
+    "-m",
+    type=(str, click.Path(exists=True, path_type=Path)),
+    multiple=True,
+    required=True,
+    help="Gene set file in GMT format: NAME PATH (can be repeated)",
+)
+@click.option(
+    "--chrom-sizes",
+    "-c",
+    type=click.Path(exists=True, path_type=Path),
+    help="Chromosome sizes file (optional, improves accuracy)",
+)
+@click.option(
+    "--rule",
+    "-r",
+    type=click.Choice(["basalPlusExt", "twoClosest", "oneClosest"]),
+    default="basalPlusExt",
+    show_default=True,
+    help="Gene association rule",
+)
+@click.option(
+    "--upstream",
+    type=int,
+    default=5000,
+    show_default=True,
+    help="Upstream basal domain (bp)",
+)
+@click.option(
+    "--downstream",
+    type=int,
+    default=1000,
+    show_default=True,
+    help="Downstream basal domain (bp)",
+)
+@click.option(
+    "--max-extension",
+    type=int,
+    default=1000000,
+    show_default=True,
+    help="Maximum extension distance (bp)",
+)
+@click.option(
+    "--output",
+    "-o",
+    type=click.Path(path_type=Path),
+    help="Output file path (TSV format)",
+)
+@click.option(
+    "--max-fdr",
+    type=float,
+    default=0.05,
+    show_default=True,
+    help="Maximum FDR threshold for filtering",
+)
+@click.option(
+    "--min-genes",
+    type=int,
+    default=2,
+    show_default=True,
+    help="Minimum genes per term",
+)
+@click.option(
+    "--format",
+    "output_format",
+    type=click.Choice(["tsv", "csv", "json"]),
+    default="tsv",
+    show_default=True,
+    help="Output format",
+)
+@click.pass_context
+def local(
+    ctx: click.Context,
+    bed_file: Path,
+    gtf: Path,
+    gmt: tuple[tuple[str, Path], ...],
+    chrom_sizes: Path | None,
+    rule: str,
+    upstream: int,
+    downstream: int,
+    max_extension: int,
+    output: Path | None,
+    max_fdr: float,
+    min_genes: int,
+    output_format: str,
+) -> None:
+    """
+    Run GREAT analysis locally without the Stanford server.
+
+    Supports any organism with a GTF file and custom gene sets in GMT format.
+    This implements the GREAT algorithm locally for maximum flexibility.
+
+    **BED_FILE** is the path to your genomic regions in BED format.
+
+    ## Examples
+
+    Basic local analysis:
+
+        $ pygreat local peaks.bed -g genes.gtf -m "GO BP" go_bp.gmt
+
+    With multiple gene sets:
+
+        $ pygreat local peaks.bed -g genes.gtf \\
+            -m "GO BP" go_bp.gmt \\
+            -m "KEGG" kegg.gmt \\
+            -o results.tsv
+
+    With chromosome sizes (recommended):
+
+        $ pygreat local peaks.bed -g genes.gtf -m "GO BP" go.gmt \\
+            -c genome.chrom.sizes -o results.tsv
+    """
+    from pygreat.local.genes import GeneAnnotation
+    from pygreat.local.genesets import GeneSetCollection
+    from pygreat.local.great import LocalGreat
+
+    verbose = ctx.obj["verbose"]
+
+    try:
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            console=console,
+            transient=True,
+        ) as progress:
+            # Load gene annotations
+            task = progress.add_task("Loading gene annotations...", total=None)
+            gene_annotation = GeneAnnotation.from_gtf(
+                gtf,
+                chrom_sizes=chrom_sizes,
+            )
+            progress.update(task, completed=True)
+
+            if verbose:
+                console.print(f"[green]Loaded {len(gene_annotation)} genes[/green]")
+
+            # Load gene sets
+            task = progress.add_task("Loading gene sets...", total=None)
+            gene_sets: dict[str, GeneSetCollection] = {}
+            for name, gmt_path in gmt:
+                collection = GeneSetCollection.from_gmt(gmt_path, name=name)
+                gene_sets[name] = collection
+                if verbose:
+                    console.print(f"  [dim]{name}: {len(collection)} terms[/dim]")
+            progress.update(task, completed=True)
+
+            # Create LocalGreat engine
+            task = progress.add_task("Computing regulatory domains...", total=None)
+            great = LocalGreat(
+                gene_annotation=gene_annotation,
+                gene_sets=gene_sets,
+                rule=rule,  # type: ignore
+                upstream=upstream,
+                downstream=downstream,
+                max_extension=max_extension,
+            )
+            progress.update(task, completed=True)
+
+            # Run analysis
+            task = progress.add_task("Running enrichment analysis...", total=None)
+            result = great.analyze(bed_file)
+            progress.update(task, completed=True)
+
+        # Get filtered results
+        results = result.get_enrichment_tables(
+            max_fdr=max_fdr,
+            min_genes=min_genes,
+        )
+
+        # Display summary
+        _display_results_summary(results)
+
+        # Show metadata
+        if verbose:
+            console.print(f"\n[dim]Regions: {result.metadata.get('n_regions', 'N/A')}[/dim]")
+            console.print(f"[dim]Genes hit: {result.metadata.get('n_genes_hit', 'N/A')}[/dim]")
+
+        # Save output
+        if output:
+            _save_results(results, output, output_format)
+            console.print(f"\n[green]Results saved to:[/green] {output}")
+
+    except FileNotFoundError as e:
+        console.print(f"[red]File not found:[/red] {e}")
+        sys.exit(1)
+    except Exception as e:
+        console.print(f"[red]Error:[/red] {e}")
+        if verbose:
+            import traceback
+            console.print(traceback.format_exc())
+        sys.exit(1)
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Cancelled by user[/yellow]")
+        sys.exit(130)
+
+
+@cli.command()
+@click.argument("results_file", type=click.Path(exists=True, path_type=Path))
+@click.option(
+    "--output",
+    "-o",
+    type=click.Path(path_type=Path),
+    required=True,
+    help="Output HTML file path",
+)
+@click.option(
+    "--title",
+    "-t",
+    default="GREAT Enrichment Report",
+    help="Report title",
+)
+@click.option(
+    "--fdr-threshold",
+    type=float,
+    default=0.05,
+    show_default=True,
+    help="Default FDR threshold for filtering",
+)
+@click.option(
+    "--top-n",
+    type=int,
+    default=100,
+    show_default=True,
+    help="Default number of top terms to display",
+)
+@click.pass_context
+def report(
+    ctx: click.Context,
+    results_file: Path,
+    output: Path,
+    title: str,
+    fdr_threshold: float,
+    top_n: int,
+) -> None:
+    """
+    Generate an interactive HTML report from enrichment results.
+
+    **RESULTS_FILE** is the TSV/CSV file from a previous `submit` or `local` command.
+
+    The report includes:
+    - Summary statistics and top terms
+    - Interactive tables with search, sort, and filtering
+    - Global filters for FDR, p-value, and category
+    - Term detail view with GO links
+    - Plot builder for bar and dot plots
+    - Export options for plots and data
+
+    ## Examples
+
+    Basic report:
+
+        $ pygreat report results.tsv -o report.html
+
+    Custom title and settings:
+
+        $ pygreat report results.tsv -o report.html -t "ChIP-seq Analysis" --fdr-threshold 0.01
+    """
+    from pygreat.report import ReportConfig, ReportGenerator
+
+    verbose = ctx.obj["verbose"]
+
+    try:
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            console=console,
+            transient=True,
+        ) as progress:
+            task = progress.add_task("Generating HTML report...", total=None)
+
+            config = ReportConfig(
+                title=title,
+                default_fdr=fdr_threshold,
+                default_top_n=top_n,
+            )
+
+            generator = ReportGenerator(config)
+            output_path = generator.generate(results_file, output)
+
+            progress.update(task, completed=True)
+
+        console.print(f"[green]Report saved to:[/green] {output_path}")
+
+        if verbose:
+            import os
+            size_kb = os.path.getsize(output_path) / 1024
+            console.print(f"[dim]File size: {size_kb:.1f} KB[/dim]")
+
+    except FileNotFoundError as e:
+        console.print(f"[red]File not found:[/red] {e}")
+        sys.exit(1)
+    except ValueError as e:
+        console.print(f"[red]Validation error:[/red] {e}")
+        sys.exit(1)
+    except Exception as e:
+        console.print(f"[red]Error:[/red] {e}")
+        if verbose:
+            import traceback
+            console.print(traceback.format_exc())
+        sys.exit(1)
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Cancelled by user[/yellow]")
+        sys.exit(130)
 
 
 def _display_results_summary(results: dict[str, "pd.DataFrame"]) -> None:

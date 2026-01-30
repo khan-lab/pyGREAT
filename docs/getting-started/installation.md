@@ -10,7 +10,7 @@
 The simplest way to install pygreat is via pip:
 
 ```bash
-pip install pygreat
+pip install py-great
 ```
 
 ## Install from Source
@@ -18,7 +18,7 @@ pip install pygreat
 For the latest development version:
 
 ```bash
-git clone https://github.com/your-username/pygreat.git
+git clone https://github.com/khan-lab/pyGREAT.git
 cd pygreat
 pip install -e .
 ```
@@ -27,22 +27,22 @@ pip install -e .
 
 pygreat automatically installs the following dependencies:
 
-| Package | Purpose |
-|---------|---------|
-| `httpx` | HTTP client for API requests |
-| `pandas` | DataFrame handling for results |
-| `numpy` | Numerical operations |
-| `rich-click` | Beautiful CLI interface |
-| `rich` | Terminal formatting |
-| `matplotlib` | Plotting backend |
-| `seaborn` | Statistical visualizations |
+| Package      | Purpose                        |
+| ------------ | ------------------------------ |
+| `httpx`      | HTTP client for API requests   |
+| `pandas`     | DataFrame handling for results |
+| `numpy`      | Numerical operations           |
+| `rich-click` | Beautiful CLI interface        |
+| `rich`       | Terminal formatting            |
+| `matplotlib` | Plotting backend               |
+| `seaborn`    | Statistical visualizations     |
 
 ## Optional Dependencies
 
 For development and testing:
 
 ```bash
-pip install pygreat[dev]
+pip install py-great[dev]
 ```
 
 This includes:
