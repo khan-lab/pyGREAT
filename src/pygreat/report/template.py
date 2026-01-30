@@ -198,8 +198,32 @@ table.dataTable tbody td {
 /* Selection checkbox column */
 table.dataTable td.select-checkbox,
 table.dataTable th.select-checkbox {
-    width: 30px;
+    width: 40px;
+    min-width: 40px;
+    max-width: 40px;
     text-align: center;
+    vertical-align: middle;
+    padding: 0.5rem !important;
+}
+
+/* Checkbox styling for better clickability */
+.term-select {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    margin: 0;
+    padding: 0;
+    vertical-align: middle;
+    accent-color: var(--primary-color);
+}
+
+.term-select:hover {
+    transform: scale(1.1);
+}
+
+/* Ensure checkbox cell has clickable area */
+table.dataTable td.select-checkbox {
+    cursor: pointer;
 }
 
 /* Plot Builder */
@@ -430,17 +454,28 @@ function initTables() {
                 { targets: 0, orderable: false }
             ]
         });
+    });
 
-        // Handle checkbox changes
-        $(el).on('change', '.term-select', function() {
-            const termId = $(this).data('term-id');
-            if (this.checked) {
-                selectedTerms.add(termId);
-            } else {
-                selectedTerms.delete(termId);
-            }
-            updateSelectionCount();
-        });
+    // Handle checkbox changes using document-level delegation (works with DataTables pagination)
+    $(document).on('change', '.term-select', function() {
+        const termId = $(this).data('term-id');
+        if (this.checked) {
+            selectedTerms.add(termId);
+        } else {
+            selectedTerms.delete(termId);
+        }
+        updateSelectionCount();
+    });
+
+    // Also allow clicking the cell itself to toggle the checkbox (larger click target)
+    $(document).on('click', 'td.select-checkbox', function(e) {
+        // Don't double-trigger if clicking directly on checkbox
+        if ($(e.target).hasClass('term-select')) return;
+
+        const checkbox = $(this).find('.term-select');
+        if (checkbox.length) {
+            checkbox.prop('checked', !checkbox.prop('checked')).trigger('change');
+        }
     });
 }
 
