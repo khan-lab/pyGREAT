@@ -995,15 +995,15 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#010-2024-01-xx" class="md-nav__link">
+  <a href="#020-2026-01-30" class="md-nav__link">
     <span class="md-ellipsis">
       
-        [0.1.0] - 2024-01-XX
+        [0.2.0] - 2026-01-30
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="[0.1.0] - 2024-01-XX">
+    <nav class="md-nav" aria-label="[0.2.0] - 2026-01-30">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1018,7 +1018,57 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#fixed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#technical-details" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Technical Details
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#010-2026-01-24" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.1.0] - 2026-01-24
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[0.1.0] - 2026-01-24">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#technical-details_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Technical Details
@@ -1107,15 +1157,15 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#010-2024-01-xx" class="md-nav__link">
+  <a href="#020-2026-01-30" class="md-nav__link">
     <span class="md-ellipsis">
       
-        [0.1.0] - 2024-01-XX
+        [0.2.0] - 2026-01-30
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="[0.1.0] - 2024-01-XX">
+    <nav class="md-nav" aria-label="[0.2.0] - 2026-01-30">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1130,7 +1180,57 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#fixed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#technical-details" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Technical Details
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#010-2026-01-24" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.1.0] - 2026-01-24
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[0.1.0] - 2026-01-24">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Added
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#technical-details_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Technical Details
@@ -1198,8 +1298,39 @@
 <p>The format is based on <a href="https://keepachangelog.com/en/1.0.0/">Keep a Changelog</a>,
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
 <h2 id="unreleased">[Unreleased]<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
-<h2 id="010-2024-01-xx">[0.1.0] - 2024-01-XX<a class="headerlink" href="#010-2024-01-xx" title="Permanent link">&para;</a></h2>
+<h2 id="020-2026-01-30">[0.2.0] - 2026-01-30<a class="headerlink" href="#020-2026-01-30" title="Permanent link">&para;</a></h2>
 <h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Local GREAT Analysis</strong> - Run enrichment analysis locally without requiring the GREAT web service</li>
+<li><code>LocalGREAT</code> class for offline analysis with custom gene sets</li>
+<li>Support for GTF gene annotations and GMT gene set files</li>
+<li>Basal-plus-extension regulatory domain assignment</li>
+<li>Both binomial and hypergeometric statistical tests</li>
+<li><code>pygreat local</code> CLI command for local analysis</li>
+<li><strong>Interactive HTML Reports</strong> - Generate self-contained interactive reports from enrichment results</li>
+<li><code>pygreat report</code> CLI command to create HTML reports</li>
+<li>Summary panel with total/significant terms per ontology</li>
+<li>Interactive DataTables with search, sort, and pagination</li>
+<li>Global filters for FDR, p-value thresholds, and top N terms</li>
+<li>Term detail modal with stats, gene lists, and GO links (AmiGO, QuickGO)</li>
+<li>Built-in plot builder for bar and dot plots with Plotly</li>
+<li>Export options: SVG, PNG, TSV, CSV</li>
+<li>Single self-contained HTML file (no external dependencies at runtime)</li>
+<li><code>ReportGenerator</code> and <code>ReportConfig</code> classes for programmatic report generation</li>
+<li><code>DataProcessor</code> class for loading and validating enrichment results</li>
+</ul>
+<h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Gene name/ID mismatch in local analysis - GMT files using gene symbols now correctly match GTF annotations using gene IDs</li>
+</ul>
+<h3 id="technical-details">Technical Details<a class="headerlink" href="#technical-details" title="Permanent link">&para;</a></h3>
+<ul>
+<li>HTML reports use CDN-loaded libraries: Bootstrap 5, DataTables, jQuery, Plotly</li>
+<li>No new Python dependencies for report generation (uses existing pandas, json)</li>
+<li>Report module: <code>pygreat.report</code></li>
+</ul>
+<h2 id="010-2026-01-24">[0.1.0] - 2026-01-24<a class="headerlink" href="#010-2026-01-24" title="Permanent link">&para;</a></h2>
+<h3 id="added_1">Added<a class="headerlink" href="#added_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Initial release of pygreat</li>
 <li><code>GreatClient</code> for submitting jobs to GREAT</li>
@@ -1226,7 +1357,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li>Full type hints and py.typed marker</li>
 <li>Comprehensive documentation</li>
 </ul>
-<h3 id="technical-details">Technical Details<a class="headerlink" href="#technical-details" title="Permanent link">&para;</a></h3>
+<h3 id="technical-details_1">Technical Details<a class="headerlink" href="#technical-details_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Uses GREAT batch API (<code>outputType=batch</code>) for direct TSV responses</li>
 <li>File hosting via transfer.sh for local file uploads</li>
