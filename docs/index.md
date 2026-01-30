@@ -16,8 +16,10 @@ pygreat is a Python package that provides programmatic access to [GREAT](https:/
 
 - **Multiple input formats** - Submit BED files, URLs, or pandas DataFrames
 - **Batch API** - Fast results using GREAT's batch processing endpoint
+- **Local analysis** - Run GREAT offline with custom gene sets (no web service required)
 - **Rich results** - Get enrichment tables as pandas DataFrames for easy analysis
 - **Visualization** - Create publication-ready bar and dot plots with seaborn
+- **Interactive reports** - Generate self-contained HTML reports with filtering, plotting, and export
 - **CLI** - Beautiful command-line interface powered by rich-click
 - **Type hints** - Full type annotations for IDE support and static analysis
 - **Modern Python** - Built for Python 3.10+ with modern syntax
@@ -43,11 +45,17 @@ print(significant[["term_name", "binom_fdr", "observed_genes"]].head(10))
 ## Command Line
 
 ```bash
-# Submit and save results
+# Submit to GREAT web service and save results
 pygreat submit peaks.bed --species hg38 --output results.tsv
 
-# Create visualization
+# Or run locally with custom gene sets
+pygreat local peaks.bed --gtf genes.gtf --gmt go_terms.gmt -o results.tsv
+
+# Create static visualization
 pygreat plot results.tsv -t "GO Biological Process" -o enrichment.png
+
+# Generate interactive HTML report
+pygreat report results.tsv -o report.html
 ```
 
 ## Installation

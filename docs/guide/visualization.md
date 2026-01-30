@@ -1,6 +1,69 @@
 # Visualization
 
-pygreat provides publication-ready visualizations for enrichment results using seaborn and matplotlib.
+pygreat provides publication-ready visualizations for enrichment results using seaborn and matplotlib, as well as interactive HTML reports.
+
+## Interactive HTML Reports
+
+Generate a self-contained interactive HTML report from your enrichment results. The report includes everything you need to explore and present your results without writing any code.
+
+### Features
+
+- **Summary Panel** - Overview of total terms and significant terms per ontology
+- **Interactive Tables** - Search, sort, and paginate through results with DataTables
+- **Global Filters** - Filter by FDR threshold, p-value, category, and top N terms
+- **Term Details** - Click any term to see full statistics, gene list, and links to AmiGO/QuickGO
+- **Plot Builder** - Create bar or dot plots from selected terms directly in the browser
+- **Export** - Download plots as SVG/PNG and data as TSV/CSV
+
+### CLI Usage
+
+```bash
+# Generate HTML report from enrichment results
+pygreat report results.tsv -o report.html
+
+# Custom title
+pygreat report results.tsv -o report.html -t "ChIP-seq Enrichment Analysis"
+
+# Stricter default FDR threshold
+pygreat report results.tsv -o report.html --fdr-threshold 0.01
+```
+
+### Python Usage
+
+```python
+from pygreat.report import ReportGenerator, ReportConfig
+
+# Basic usage
+generator = ReportGenerator()
+generator.generate("results.tsv", "report.html")
+
+# With custom configuration
+config = ReportConfig(
+    title="My Enrichment Analysis",
+    default_fdr=0.01,
+    default_top_n=50,
+)
+generator = ReportGenerator(config)
+generator.generate("results.tsv", "report.html")
+
+# Generate from DataFrame
+import pandas as pd
+df = pd.read_csv("results.tsv", sep="\t")
+generator.generate(df, "report.html")
+```
+
+### Report Walkthrough
+
+1. **Summary Cards** - At the top, see total terms and significant terms (FDR < 0.05) for each ontology category
+2. **Filter Bar** - Use the search box, FDR/p-value dropdowns, and Top N selector to focus on terms of interest
+3. **Ontology Accordion** - Click to expand/collapse each ontology section (Biological Process, Molecular Function, etc.)
+4. **Data Tables** - Each table is sortable and searchable; click column headers to sort
+5. **Row Selection** - Check boxes to select terms for plotting
+6. **Term Modal** - Click a term name to see detailed statistics and copy the gene list
+7. **Plot Builder** - Select terms, choose plot type (bar/dot), customize settings, and generate interactive Plotly plots
+8. **Export** - Download your customized plots or filtered data
+
+---
 
 ## Bar Plot
 

@@ -1,14 +1,14 @@
 # Contributing
 
-Thank you for your interest in contributing to pygreat! This guide will help you get started.
+Thank you for your interest in contributing to pyGREAT! This guide will help you get started.
 
 ## Development Setup
 
 ### Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/pygreat.git
-cd pygreat
+git clone https://github.com/khan-lab/pyGREAT.git
+cd pyGREAT
 ```
 
 ### Create Virtual Environment
@@ -219,7 +219,7 @@ Then create a pull request on GitHub.
 ## Project Structure
 
 ```
-pygreat/
+pyGREAT/
 ├── src/pygreat/
 │   ├── __init__.py        # Package exports
 │   ├── core/
