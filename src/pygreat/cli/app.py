@@ -547,7 +547,25 @@ def local(
 
 
 @cli.command()
-@click.argument("results_file", type=click.Path(exists=True, path_type=Path))
+@click.argument(
+    "results_files",
+    type=click.Path(exists=True, path_type=Path),
+    nargs=-1,
+)
+@click.option(
+    "--compare",
+    is_flag=True,
+    default=False,
+    help="Enable multi-run comparison mode (requires 2+ files)",
+)
+@click.option(
+    "-i",
+    "--input",
+    "input_files",
+    type=click.Path(exists=True, path_type=Path),
+    multiple=True,
+    help="Input file (alternative to positional args, can be repeated)",
+)
 @click.option(
     "--output",
     "-o",
@@ -558,15 +576,35 @@ def local(
 @click.option(
     "--title",
     "-t",
-    default="GREAT Enrichment Report",
-    help="Report title",
+    default=None,
+    help="Report title (auto-generated for compare mode)",
+)
+@click.option(
+    "--labels",
+    default=None,
+    help="Comma-separated labels for runs in compare mode",
 )
 @click.option(
     "--fdr-threshold",
+    "--fdr",
     type=float,
     default=0.05,
     show_default=True,
     help="Default FDR threshold for filtering",
+)
+@click.option(
+    "--metric",
+    type=click.Choice(["fdr", "p", "fold"]),
+    default="fdr",
+    show_default=True,
+    help="Default comparison metric (compare mode)",
+)
+@click.option(
+    "--match-by",
+    type=click.Choice(["go_id", "term_name"]),
+    default="go_id",
+    show_default=True,
+    help="How to match terms across runs (compare mode)",
 )
 @click.option(
     "--top-n",
@@ -575,41 +613,136 @@ def local(
     show_default=True,
     help="Default number of top terms to display",
 )
+@click.option(
+    "--offline/--no-offline",
+    default=True,
+    show_default=True,
+    help="Embed JS libraries for offline use (compare mode)",
+)
 @click.pass_context
 def report(
+    ctx: click.Context,
+    results_files: tuple[Path, ...],
+    compare: bool,
+    input_files: tuple[Path, ...],
+    output: Path,
+    title: str | None,
+    labels: str | None,
+    fdr_threshold: float,
+    metric: str,
+    match_by: str,
+    top_n: int,
+    offline: bool,
+) -> None:
+    """
+    Generate an interactive HTML report from enrichment results.
+
+    ## Single-Run Mode (default)
+
+    **RESULTS_FILES** is a single TSV/CSV file from `submit` or `local` command.
+
+        $ pygreat report results.tsv -o report.html
+
+    ## Compare Mode
+
+    Compare 2+ enrichment results in one report with `--compare`:
+
+        $ pygreat report --compare A.tsv B.tsv C.tsv -o compare.html
+
+    Or use `-i` for each file:
+
+        $ pygreat report --compare -i A.tsv -i B.tsv -o compare.html
+
+    Compare mode includes:
+    - Per-run tabs with full single-run browsing experience
+    - Cross-run comparison view with merged table
+    - Multi-run dot plot, heatmap, and trend plots
+    - Shared/unique significant term analysis
+
+    ## Examples
+
+    Basic single report:
+
+        $ pygreat report results.tsv -o report.html
+
+    Compare two runs with custom labels:
+
+        $ pygreat report --compare -i ctrl.tsv -i treat.tsv -o cmp.html --labels "Control,Treatment"
+
+    Compare with term name matching (if GO IDs differ):
+
+        $ pygreat report --compare A.tsv B.tsv -o cmp.html --match-by term_name
+    """
+    verbose = ctx.obj["verbose"]
+
+    # Merge positional and -i arguments
+    all_files = list(results_files) + list(input_files)
+
+    if len(all_files) == 0:
+        console.print("[red]Error:[/red] At least one results file is required")
+        sys.exit(2)
+
+    # Determine mode
+    if len(all_files) == 1 and not compare:
+        # Single-run mode (existing behavior)
+        _generate_single_report(
+            ctx=ctx,
+            results_file=all_files[0],
+            output=output,
+            title=title or "GREAT Enrichment Report",
+            fdr_threshold=fdr_threshold,
+            top_n=top_n,
+            verbose=verbose,
+        )
+    elif len(all_files) >= 2 or compare:
+        # Compare mode
+        if len(all_files) < 2:
+            console.print(
+                "[red]Error:[/red] Compare mode requires at least 2 input files"
+            )
+            sys.exit(2)
+
+        # Parse labels
+        label_list: list[str] | None = None
+        if labels:
+            label_list = [lbl.strip() for lbl in labels.split(",")]
+            if len(label_list) != len(all_files):
+                console.print(
+                    f"[red]Error:[/red] {len(label_list)} labels provided for "
+                    f"{len(all_files)} files"
+                )
+                sys.exit(2)
+
+        _generate_compare_report(
+            ctx=ctx,
+            files=all_files,
+            output=output,
+            title=title,
+            labels=label_list,
+            fdr_threshold=fdr_threshold,
+            metric=metric,
+            match_by=match_by,
+            top_n=top_n,
+            offline=offline,
+            verbose=verbose,
+        )
+    else:
+        # Should not reach here
+        console.print("[red]Error:[/red] Invalid arguments")
+        sys.exit(2)
+
+
+def _generate_single_report(
     ctx: click.Context,
     results_file: Path,
     output: Path,
     title: str,
     fdr_threshold: float,
     top_n: int,
+    verbose: bool,
 ) -> None:
-    """
-    Generate an interactive HTML report from enrichment results.
-
-    **RESULTS_FILE** is the TSV/CSV file from a previous `submit` or `local` command.
-
-    The report includes:
-    - Summary statistics and top terms
-    - Interactive tables with search, sort, and filtering
-    - Global filters for FDR, p-value, and category
-    - Term detail view with GO links
-    - Plot builder for bar and dot plots
-    - Export options for plots and data
-
-    ## Examples
-
-    Basic report:
-
-        $ pygreat report results.tsv -o report.html
-
-    Custom title and settings:
-
-        $ pygreat report results.tsv -o report.html -t "ChIP-seq Analysis" --fdr-threshold 0.01
-    """
+    """Generate single-run HTML report (existing behavior)."""
     from pygreat.report import ReportConfig, ReportGenerator
-
-    verbose = ctx.obj["verbose"]
 
     try:
         with Progress(
@@ -635,6 +768,7 @@ def report(
 
         if verbose:
             import os
+
             size_kb = os.path.getsize(output_path) / 1024
             console.print(f"[dim]File size: {size_kb:.1f} KB[/dim]")
 
@@ -648,6 +782,80 @@ def report(
         console.print(f"[red]Error:[/red] {e}")
         if verbose:
             import traceback
+
+            console.print(traceback.format_exc())
+        sys.exit(1)
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Cancelled by user[/yellow]")
+        sys.exit(130)
+
+
+def _generate_compare_report(
+    ctx: click.Context,
+    files: list[Path],
+    output: Path,
+    title: str | None,
+    labels: list[str] | None,
+    fdr_threshold: float,
+    metric: str,
+    match_by: str,
+    top_n: int,
+    offline: bool,
+    verbose: bool,
+) -> None:
+    """Generate multi-run comparison HTML report."""
+    from pygreat.report import CompareReportConfig, CompareReportGenerator
+
+    try:
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            console=console,
+            transient=True,
+        ) as progress:
+            task = progress.add_task(
+                f"Generating comparison report ({len(files)} runs)...", total=None
+            )
+
+            # Auto-generate title if not provided
+            if title is None:
+                title = f"GREAT Comparison Report ({len(files)} runs)"
+
+            config = CompareReportConfig(
+                title=title,
+                run_labels=labels or [],
+                default_fdr=fdr_threshold,
+                default_top_n=top_n,
+                default_metric=metric,
+                match_by=match_by,
+                offline=offline,
+            )
+
+            generator = CompareReportGenerator(config)
+            output_path = generator.generate(files, output)
+
+            progress.update(task, completed=True)
+
+        console.print(f"[green]Comparison report saved to:[/green] {output_path}")
+
+        if verbose:
+            import os
+
+            size_kb = os.path.getsize(output_path) / 1024
+            console.print(f"[dim]File size: {size_kb:.1f} KB[/dim]")
+            console.print(f"[dim]Runs compared: {len(files)}[/dim]")
+
+    except FileNotFoundError as e:
+        console.print(f"[red]File not found:[/red] {e}")
+        sys.exit(1)
+    except ValueError as e:
+        console.print(f"[red]Validation error:[/red] {e}")
+        sys.exit(1)
+    except Exception as e:
+        console.print(f"[red]Error:[/red] {e}")
+        if verbose:
+            import traceback
+
             console.print(traceback.format_exc())
         sys.exit(1)
     except KeyboardInterrupt:

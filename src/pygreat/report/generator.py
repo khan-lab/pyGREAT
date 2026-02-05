@@ -8,9 +8,9 @@ from __future__ import annotations
 
 import json
 import logging
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import pandas as pd
 
@@ -521,3 +521,350 @@ def generate_report(
     )
     generator = ReportGenerator(config)
     return generator.generate(results, output)
+
+
+@dataclass
+class CompareReportConfig:
+    """Configuration for multi-run comparison HTML report.
+
+    Attributes:
+        title: Report title displayed in header.
+        run_labels: Labels for each run (in order).
+        default_fdr: Default FDR threshold for filtering.
+        default_top_n: Default number of top terms to display.
+        default_metric: Default metric for ranking/coloring.
+        match_by: How to match terms across runs.
+        offline: Whether to embed JS libraries (True) or use CDN (False).
+    """
+
+    title: str = "GREAT Comparison Report"
+    run_labels: list[str] = field(default_factory=list)
+    default_fdr: float = 0.05
+    default_top_n: int = 100
+    default_metric: Literal["fdr", "p", "fold"] = "fdr"
+    match_by: Literal["go_id", "term_name"] = "go_id"
+    offline: bool = True
+
+
+class CompareReportGenerator:
+    """Generate interactive comparison HTML reports from multiple enrichment results.
+
+    Example:
+        >>> from pygreat.report import CompareReportGenerator, CompareReportConfig
+        >>> config = CompareReportConfig(title="My Comparison", run_labels=["A", "B"])
+        >>> generator = CompareReportGenerator(config)
+        >>> generator.generate(["results_a.tsv", "results_b.tsv"], "compare.html")
+    """
+
+    def __init__(self, config: CompareReportConfig | None = None) -> None:
+        """Initialize comparison report generator.
+
+        Args:
+            config: Report configuration options.
+        """
+        self.config = config or CompareReportConfig()
+
+        # Import here to avoid circular imports
+        from pygreat.report.compare_processor import CompareDataProcessor
+
+        self.processor = CompareDataProcessor(
+            match_by=self.config.match_by,
+            fdr_threshold=self.config.default_fdr,
+        )
+
+    def generate(
+        self,
+        results_files: list[str | Path],
+        output: str | Path,
+    ) -> Path:
+        """Generate comparison HTML report from multiple enrichment result files.
+
+        Args:
+            results_files: List of paths to TSV/CSV files with enrichment results.
+            output: Path to write HTML report.
+
+        Returns:
+            Path to generated report file.
+
+        Raises:
+            FileNotFoundError: If any results file doesn't exist.
+            ValueError: If fewer than 2 files provided or required columns missing.
+        """
+        if len(results_files) < 2:
+            raise ValueError("Comparison requires at least 2 result files")
+
+        # Import templates here to avoid circular imports
+        from pygreat.report.assets import get_library_tags
+        from pygreat.report.compare_template import (
+            COMPARE_CSS,
+            COMPARE_JS,
+            COMPARE_TEMPLATE,
+            get_upset_section_html,
+        )
+
+        # Convert to Path objects
+        file_paths = [Path(f) for f in results_files]
+
+        # Generate labels if not provided
+        labels = self.config.run_labels
+        if not labels or len(labels) != len(file_paths):
+            labels = [p.stem for p in file_paths]
+
+        # Load and merge runs
+        runs = self.processor.load_runs(file_paths, labels)
+        compare_data = self.processor.merge_runs(runs)
+
+        # Convert to JSON for JavaScript
+        data_json = self.processor.to_json(compare_data)
+
+        # Get library tags (CSS and JS)
+        css_libs, js_libs = get_library_tags(offline=self.config.offline)
+
+        # Build config JSON
+        config_dict = {
+            "title": self.config.title,
+            "runLabels": labels,
+            "defaultFdr": self.config.default_fdr,
+            "defaultTopN": self.config.default_top_n,
+            "defaultMetric": self.config.default_metric,
+            "matchBy": self.config.match_by,
+        }
+
+        # Build dynamic HTML sections
+        run_tabs_html = self._build_run_tabs(labels)
+        run_panes_html = self._build_run_panes(labels)
+        category_options = self._build_category_options(compare_data.categories)
+        unique_cards_html = self._build_unique_cards(labels, compare_data.unique_per_run)
+
+        # UpSet plot section for 3+ runs
+        num_runs = len(labels)
+        if num_runs >= 3:
+            upset_section = get_upset_section_html()
+            heatmap_col_size = "8"
+        else:
+            upset_section = ""
+            heatmap_col_size = "12"
+
+        # Display name for match_by
+        match_by_display = "GO ID" if self.config.match_by == "go_id" else "Term Name"
+
+        # Render template
+        html = COMPARE_TEMPLATE.format(
+            title=self.config.title,
+            libraries_css=css_libs,
+            custom_css=COMPARE_CSS,
+            libraries_js=js_libs,
+            data_json=data_json,
+            config_json=json.dumps(config_dict),
+            custom_js=COMPARE_JS,
+            num_runs=num_runs,
+            run_tabs_html=run_tabs_html,
+            run_panes_html=run_panes_html,
+            category_options=category_options,
+            unique_cards_html=unique_cards_html,
+            match_by=match_by_display,
+            heatmap_col_size=heatmap_col_size,
+            upset_section=upset_section,
+        )
+
+        # Write output
+        output_path = Path(output)
+        output_path.write_text(html, encoding="utf-8")
+
+        return output_path
+
+    def _build_run_tabs(self, labels: list[str]) -> str:
+        """Build HTML for run tab navigation items."""
+        tabs = []
+        for label in labels:
+            safe_id = self._escape_html(label.replace(" ", "_"))
+            safe_label = self._escape_html(label)
+            tabs.append(
+                f'<li class="nav-item">'
+                f'<a class="nav-link" data-tab="run-{safe_id}" href="#">{safe_label}</a>'
+                f"</li>"
+            )
+        return "\n            ".join(tabs)
+
+    def _build_run_panes(self, labels: list[str]) -> str:
+        """Build HTML for individual run panes with full single-run report UI."""
+        panes = []
+        for label in labels:
+            safe_id = self._escape_html(label.replace(" ", "_"))
+            safe_label = self._escape_html(label)
+            panes.append(f"""
+            <div class="main-tab-pane" id="pane-run-{safe_id}">
+                <!-- Run Summary Cards -->
+                <div class="summary-cards" id="runSummary-{safe_id}"></div>
+
+                <!-- Run Filters -->
+                <div class="compare-controls run-filters">
+                    <div class="filter-group">
+                        <label>Search:</label>
+                        <input type="text" class="form-control form-control-sm run-search"
+                               data-run="{safe_id}" placeholder="Search terms...">
+                    </div>
+                    <div class="filter-group">
+                        <label>Category:</label>
+                        <select class="form-select form-select-sm run-category" data-run="{safe_id}">
+                            <option value="all">All Categories</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>FDR:</label>
+                        <select class="form-select form-select-sm run-fdr" data-run="{safe_id}">
+                            <option value="1">All</option>
+                            <option value="0.05" selected>&le; 0.05</option>
+                            <option value="0.01">&le; 0.01</option>
+                            <option value="0.001">&le; 0.001</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Top N:</label>
+                        <select class="form-select form-select-sm run-topn" data-run="{safe_id}">
+                            <option value="10">10</option>
+                            <option value="20">20</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                            <option value="" selected>All</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Ontology Accordion -->
+                <div class="accordion run-accordion" id="runAccordion-{safe_id}"></div>
+
+                <!-- Plot Builder -->
+                <div class="card mt-4 run-plot-builder">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span>Plot Builder</span>
+                        <div>
+                            <button class="btn btn-sm btn-outline-secondary"
+                                    onclick="runSelectAllVisible('{safe_id}')">Select All Visible</button>
+                            <button class="btn btn-sm btn-outline-secondary"
+                                    onclick="runDeselectAll('{safe_id}')">Deselect All</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted mb-3">
+                            <span id="runSelectedCount-{safe_id}">0</span> terms selected.
+                            Select terms using checkboxes in the tables above.
+                        </p>
+                        <div class="plot-settings">
+                            <div class="form-group">
+                                <label>Plot Type</label>
+                                <select class="form-select form-select-sm" id="runPlotType-{safe_id}">
+                                    <option value="bar">Bar Plot</option>
+                                    <option value="dot">Dot Plot</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Metric</label>
+                                <select class="form-select form-select-sm" id="runPlotMetric-{safe_id}">
+                                    <option value="neglog_fdr">-log₁₀(FDR)</option>
+                                    <option value="neglog_p">-log₁₀(P-value)</option>
+                                    <option value="fold">Fold Enrichment</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary btn-sm mt-2" id="runPlotBtn-{safe_id}"
+                                onclick="generateRunPlot('{safe_id}')" disabled>Generate Plot</button>
+                        <div id="runPlotContainer-{safe_id}" class="mt-3 plot-container" style="min-height:300px;"></div>
+                        <div class="export-buttons mt-2">
+                            <button class="btn btn-sm btn-outline-primary"
+                                    onclick="exportRunPlotSVG('{safe_id}')">SVG</button>
+                            <button class="btn btn-sm btn-outline-primary"
+                                    onclick="exportRunPlotPNG('{safe_id}')">PNG</button>
+                            <button class="btn btn-sm btn-outline-secondary"
+                                    onclick="exportRunTSV('{safe_id}')">Download TSV</button>
+                        </div>
+                    </div>
+                </div>
+            </div>""")
+        return "\n".join(panes)
+
+    def _build_category_options(self, categories: list[str]) -> str:
+        """Build HTML for category dropdown options."""
+        options = []
+        for cat in sorted(categories):
+            safe_cat = self._escape_html(cat)
+            options.append(f'<option value="{safe_cat}">{safe_cat}</option>')
+        return "\n                            ".join(options)
+
+    def _build_unique_cards(
+        self, labels: list[str], unique_per_run: dict[str, list[str]]
+    ) -> str:
+        """Build HTML for unique term count cards per run."""
+        cards = []
+        for label in labels:
+            safe_label = self._escape_html(label)
+            count = len(unique_per_run.get(label, []))
+            cards.append(f"""
+                    <div class="summary-card unique">
+                        <div class="count">{count}</div>
+                        <div class="label">Unique to {safe_label}</div>
+                    </div>""")
+        return "\n".join(cards)
+
+    @staticmethod
+    def _escape_html(text: str) -> str:
+        """Escape HTML special characters."""
+        return (
+            str(text)
+            .replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace('"', "&quot;")
+            .replace("'", "&#x27;")
+        )
+
+
+def generate_compare_report(
+    results_files: list[str | Path],
+    output: str | Path,
+    title: str = "GREAT Comparison Report",
+    labels: list[str] | None = None,
+    default_fdr: float = 0.05,
+    default_top_n: int = 100,
+    default_metric: Literal["fdr", "p", "fold"] = "fdr",
+    match_by: Literal["go_id", "term_name"] = "go_id",
+    offline: bool = True,
+) -> Path:
+    """Generate comparison HTML report from multiple enrichment result files.
+
+    Convenience function for quick comparison report generation.
+
+    Args:
+        results_files: List of paths to TSV/CSV files with enrichment results.
+        output: Path to write HTML report.
+        title: Report title.
+        labels: Labels for each run. Defaults to file stems.
+        default_fdr: Default FDR threshold.
+        default_top_n: Default top N terms.
+        default_metric: Default metric for ranking.
+        match_by: How to match terms across runs.
+        offline: Whether to embed JS libraries.
+
+    Returns:
+        Path to generated report file.
+
+    Example:
+        >>> from pygreat.report import generate_compare_report
+        >>> generate_compare_report(
+        ...     ["a.tsv", "b.tsv"],
+        ...     "compare.html",
+        ...     title="My Comparison",
+        ...     labels=["Treatment", "Control"],
+        ... )
+    """
+    config = CompareReportConfig(
+        title=title,
+        run_labels=labels or [],
+        default_fdr=default_fdr,
+        default_top_n=default_top_n,
+        default_metric=default_metric,
+        match_by=match_by,
+        offline=offline,
+    )
+    generator = CompareReportGenerator(config)
+    return generator.generate(results_files, output)

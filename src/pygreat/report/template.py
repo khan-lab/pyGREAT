@@ -442,9 +442,9 @@ function initTables() {
             data: tableData,
             columns: columns,
             order: [[fdrColIdx, 'asc']],
-            pageLength: 50,
+            pageLength: 10,
             scrollX: true,
-            lengthMenu: [[25, 50, 100, -1], [25, 50, 100, 'All']],
+            lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, 'All']],
             dom: '<"row"<"col-sm-6"l><"col-sm-6"f>>rtip',
             language: {
                 search: 'Search:',
