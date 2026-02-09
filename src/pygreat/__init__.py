@@ -34,7 +34,7 @@ from pygreat.core.exceptions import (
 from pygreat.models.regions import GenomicRegions, GenomicRegion
 from pygreat.local.great import LocalGreat
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 __all__ = [
     # Main classes
